@@ -1,0 +1,10 @@
+name: link-your-issues
+
+on:
+  pull_request
+
+jobs:
+  link-your-issues:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: mbestavros/link-your-issues@master

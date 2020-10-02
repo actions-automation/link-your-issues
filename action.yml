@@ -1,0 +1,14 @@
+  
+name: link-your-issues
+description: Test whether contributors properly link issues mentioned in commits in their PR descriptions
+
+branding:
+  icon: zap
+  color: gray-dark
+
+runs:
+  using: "composite"
+  steps:
+    - run: $GITHUB_ACTION_PATH/misc-consistent-linked-issues
+      shell: bash
+      

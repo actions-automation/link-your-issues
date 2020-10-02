@@ -1,0 +1,79 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: Apache-2.0
+
+import helper
+import json
+import os
+import re
+
+# Regex to pick out closing keywords.
+LINKED_ISSUES = re.compile("(close[sd]?|fix|fixe[sd]?|resolve[sd]?)\s*:?\s+#(\d+)", re.I)
+
+# Extract all associated issues from PR commit messages
+def get_linked_issues_commits(commit_messages):
+    for c in commit_messages:
+        for verb, num in LINKED_ISSUES.findall(c):
+            yield num
+
+# Extract all associated issues linked in PR description
+def get_linked_issues_body(body):
+    # Extract all associated issues from closing keyword in PR
+    for verb, num in LINKED_ISSUES.findall(body):
+        yield num
+
+# Check to be sure we're running on a PR.
+if os.environ["GITHUB_EVENT_NAME"] not in ["pull_request", "pull_request_target"]:
+    print("`link-your-issues` will only work when running on a PR event.")
+    sys.exit(0)
+
+# Open Github event JSON
+with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+    event = json.load(f)
+
+# Get the PR ID we're working on.
+pr = event['pull_request']['node_id']
+
+result = helper.graphql(
+    """
+    query($pr:ID!, $cursor:String) {
+        node(id:$pr) {
+        ... on PullRequest {
+                body
+                commits(first:100) {
+                    nodes {
+                    ... on PullRequestCommit {
+                            commit {
+                                message
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    """,
+    pr=pr,
+    cursors={cursor: ["node", "commits"]}
+)
+
+body = result["node"]["body"]
+commits = result["node"]["commits"]["nodes"]
+commit_messages = {c["commit"]["message"] for c in commits}
+
+commits_issues = set(get_linked_issues_commits(commit_messages))
+description_issues = set(get_linked_issues_body(body))
+unlinked_issues = commits_issues - description_issues
+
+if len(unlinked_issues) > 0:
+    print("""
+Your PR contains one or more commit messages that refer to closing issues, but
+those issues are not linked in your pull request description. Please include the
+following in your PR description:
+""")
+    for n in unlinked_issues:
+        print("Resolves: #%s" % n)
+    print("""
+You may use any of Github's supported closing keywords in place of 'Resolves':
+https://help.github.com/en/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword
+""")
+    exit(1)
