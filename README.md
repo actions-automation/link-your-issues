@@ -14,5 +14,5 @@ jobs:
   link-your-issues:
     runs-on: ubuntu-latest
     steps:
-    - uses: mbestavros/link-your-issues@master
+    - uses: actions-automation/link-your-issues@main
 ```

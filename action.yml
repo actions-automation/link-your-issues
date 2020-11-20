@@ -9,6 +9,6 @@ branding:
 runs:
   using: "composite"
   steps:
-    - run: $GITHUB_ACTION_PATH/misc-consistent-linked-issues
+    - run: $GITHUB_ACTION_PATH/link-your-issues
       shell: bash
       
