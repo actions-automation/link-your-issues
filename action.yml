@@ -6,9 +6,14 @@ branding:
   icon: zap
   color: gray-dark
 
+inputs:
+  repo-token:
+    description: A Github access token (for example, the GITHUB_TOKEN).
+    required: true
+
 runs:
   using: "composite"
   steps:
-    - run: $GITHUB_ACTION_PATH/link-your-issues
+    - run: $GITHUB_ACTION_PATH/link-your-issues ${{ inputs.repo-token }}
       shell: bash
       

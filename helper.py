@@ -1,10 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
-# This file contains `graphql`, a Python wrapper for calling Github's GraphQL
-# v4 API.
-# The helper was taken from the Enarxbot, where I'm a contributor.
-# Original file here: https://github.com/enarx/bot/blob/master/bot.py
-
 import requests
 import json
 import os
@@ -17,6 +12,10 @@ class HTTPError(Exception):
 class GraphQLError(Exception):
     def __init__(self, errors):
         self.errors = errors
+
+class TokenError(Exception):
+    def __init__(self, error):
+        self.error = error
 
 # A multiple, nested depagination example: fetch all issues, PRs, and PR
 # timeline items in enarx/enarx.
@@ -70,16 +69,19 @@ class GraphQLError(Exception):
 #
 # The results of depagination are merged. Therefore, you receive one big output list.
 # Similarly, the `pageInfo` object is removed from the result.
-def graphql(query, cursors=None, prev_path=None, **kwargs):
+def graphql(query, cursors=None, prev_path=None, token=None, **kwargs):
     "Perform a GraphQL query."
     url = os.environ.get("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql")
 
     params = { "query": query.strip(), "variables": json.dumps(kwargs) }
-    token = os.environ.get('GITHUB_TOKEN', None)
     headers = {}
 
-    if token is not None:
+    if token is not None and len(token) > 0:
         headers["Authorization"] = f"token {token}"
+    else:
+        raise TokenError(error="""
+GITHUB_TOKEN is unset.
+    """)
 
     # Opt into preview API fields for PR merge status.
     headers["Accept"] = "application/vnd.github.merge-info-preview+json"

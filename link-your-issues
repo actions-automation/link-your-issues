@@ -5,6 +5,7 @@ import helper
 import json
 import os
 import re
+import sys
 
 # Regex to pick out closing keywords.
 LINKED_ISSUES = re.compile("(close[sd]?|fix|fixe[sd]?|resolve[sd]?)\s*:?\s+#(\d+)", re.I)
@@ -30,31 +31,40 @@ if os.environ["GITHUB_EVENT_NAME"] not in ["pull_request", "pull_request_target"
 with open(os.environ["GITHUB_EVENT_PATH"]) as f:
     event = json.load(f)
 
+# Get GITHUB_TOKEN.
+token = sys.argv[1]
+
 # Get the PR ID we're working on.
 pr = event['pull_request']['node_id']
 
-result = helper.graphql(
-    """
-    query($pr:ID!, $cursor:String) {
-        node(id:$pr) {
-        ... on PullRequest {
-                body
-                commits(first:100) {
-                    nodes {
-                    ... on PullRequestCommit {
-                            commit {
-                                message
+try:
+    result = helper.graphql(
+        """
+        query($pr:ID!, $cursor:String) {
+            node(id:$pr) {
+            ... on PullRequest {
+                    body
+                    commits(first:100, after:$cursor) {
+                        pageInfo { endCursor hasNextPage }
+                        nodes {
+                        ... on PullRequestCommit {
+                                commit {
+                                    message
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
-    """,
-    pr=pr,
-    cursors={cursor: ["node", "commits"]}
-)
+        """,
+        token=token,
+        pr=pr,
+        cursors={'cursor': ["node", "commits"]}
+    )
+except helper.TokenError as e:
+    print(e.error)
+    sys.exit(0)
 
 body = result["node"]["body"]
 commits = result["node"]["commits"]["nodes"]
