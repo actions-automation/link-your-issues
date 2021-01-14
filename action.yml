@@ -1,4 +1,4 @@
-  
+
 name: link-your-issues
 description: Test whether contributors properly link issues mentioned in commits in their PR descriptions
 
@@ -14,6 +14,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - run: python3 -m pip install -qqq --upgrade pip
+      shell: bash
+    - run: python3 -m pip install -qqq githubgql
+      shell: bash
     - run: $GITHUB_ACTION_PATH/link-your-issues ${{ inputs.repo-token }}
       shell: bash
-      
